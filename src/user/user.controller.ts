@@ -1,5 +1,5 @@
 /* eslint-disable prettier/prettier */
-/* eslint-disable @typescript-eslint/require-await */
+ 
 import {
   Controller,
   Get,

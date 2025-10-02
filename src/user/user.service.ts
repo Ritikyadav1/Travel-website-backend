@@ -1,7 +1,4 @@
 /* eslint-disable prettier/prettier */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   ConflictException,
   Injectable,
@@ -39,7 +36,6 @@ export class UserService {
     }
 
     const saltRounds = 10;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
     const user = this.usersRepository.create({
