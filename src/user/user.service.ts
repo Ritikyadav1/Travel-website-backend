@@ -1,26 +1,111 @@
-import { Injectable } from '@nestjs/common';
+/* eslint-disable prettier/prettier */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { User } from './entities/user.entity';
+import { Repository } from 'typeorm';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UserService {
-  create(createUserDto: CreateUserDto) {
-    return 'This action adds a new user';
+  constructor(
+    @InjectRepository(User)
+    private readonly usersRepository: Repository<User>,
+  ) {}
+
+  async create(createUserDto: CreateUserDto): Promise<User> {
+    const { name, email, mobileno, password } = createUserDto;
+
+    const existingUserByEmail = await this.usersRepository.findOne({
+      where: { email },
+    });
+    if (existingUserByEmail) {
+      throw new ConflictException('Email already exists');
+    }
+
+    const existingUserByMobileNumber = await this.usersRepository.findOne({
+      where: { mobileno },
+    });
+    if (existingUserByMobileNumber) {
+      throw new ConflictException('Mobile number already exists');
+    }
+
+    const saltRounds = 10;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+    const passwordHash = await bcrypt.hash(password, saltRounds);
+
+    const user = this.usersRepository.create({
+      name,
+      email,
+      mobileno,
+      passwordHash,
+    });
+    const created_user = await this.usersRepository.save(user);
+    console.log('created_user: ', created_user);
+    return created_user;
   }
 
-  findAll() {
-    return `This action returns all user`;
+  async findAll(): Promise<User[]> {
+    return this.usersRepository.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
+  async findOne(id: number): Promise<User> {
+    const user = await this.usersRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+    return user;
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
+    const user = await this.findOne(id);
+
+    if (updateUserDto.email) {
+      const existingUserByEmail = await this.usersRepository.findOne({
+        where: { email: updateUserDto.email },
+      });
+      if (existingUserByEmail && existingUserByEmail.id !== id) {
+        throw new ConflictException('Email already exists');
+      }
+      user.email = updateUserDto.email;
+    }
+
+    if (updateUserDto.mobileno) {
+      const existingUserByMobileNumber = await this.usersRepository.findOne({
+        where: { mobileno: updateUserDto.mobileno },
+      });
+      if (existingUserByMobileNumber && existingUserByMobileNumber.id !== id) {
+        throw new ConflictException('Mobile number already exists');
+      }
+      user.mobileno = updateUserDto.mobileno;
+    }
+
+    if (updateUserDto.name) {
+      user.name = updateUserDto.name;
+    }
+    if (updateUserDto.password) {
+      const saltRounds = 10;
+      user.passwordHash = await bcrypt.hash(updateUserDto.password, saltRounds);
+    }
+
+    const updated_user = await this.usersRepository.save(user);
+    console.log('updated_user', updated_user);
+
+    return updated_user;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  async remove(id: number): Promise<void> {
+    const result = await this.usersRepository.delete(id);
+    if (result.affected === 0) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
   }
 }

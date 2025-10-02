@@ -1,11 +1,34 @@
+/* eslint-disable prettier/prettier */
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UserModule } from './user/user.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
-  imports: [UserModule],
+  imports: [
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: ['.env'],
+    }),
+    TypeOrmModule.forRoot({
+      type: 'mysql',
+      host: process.env.DB_HOST,
+      port: parseInt(process.env.DB_PORT || '3306', 10),
+      username: process.env.DB_USERNAME,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_DATABASE,
+      synchronize: true,
+      autoLoadEntities: true,
+    }),
+    UserModule,
+  ],
+
   controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule {}
+console.log('Server is running on http://localhost:3000');
+console.log('DB name: ', process.env.DB_DATABASE);
