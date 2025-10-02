@@ -104,4 +104,28 @@ export class UserService {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
   }
+
+  async findOneByEmail(email: string): Promise<User | undefined> {
+    const user = await this.usersRepository.findOne({ where: { email } });
+    return user || undefined;
+  }
+
+  async findOneByMobileNumber(mobileno: string): Promise<User | undefined> {
+    const user = await this.usersRepository.findOne({
+      where: { mobileno },
+    });
+    return user || undefined;
+  }
+
+  async validatePassword(
+    user: User,
+    passwordAttempt: string,
+  ): Promise<boolean> {
+    if (!user || !user.passwordHash) {
+      return false;
+    }
+    const valid = await bcrypt.compare(passwordAttempt, user.passwordHash);
+    return valid;
+  }
+
 }
